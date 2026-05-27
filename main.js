@@ -28,6 +28,7 @@ function createWindow() {
     frame: false,
     transparent: true,
     alwaysOnTop: true,
+    alwaysOnTopLevel: 'screen-saver',
     skipTaskbar: true,
     resizable: false,
     hasShadow: false,
