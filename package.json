@@ -1,0 +1,12 @@
+{
+  "name": "status-widget",
+  "version": "1.0.0",
+  "description": "Widget de statut pour Maëlle",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^42.3.0"
+  }
+}

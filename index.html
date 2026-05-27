@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: transparent;
+    overflow: hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    -webkit-app-region: no-drag;
+    user-select: none;
+  }
+
+  #widget {
+    position: fixed;
+    top: 0; left: 0;
+    width: 220px;
+  }
+
+  /* --- Pill principale --- */
+  #pill {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    background: rgba(14, 14, 18, 0.82);
+    border: 0.5px solid rgba(255,255,255,0.10);
+    border-radius: 14px;
+    padding: 10px 13px;
+    cursor: pointer;
+    -webkit-app-region: drag;
+    backdrop-filter: blur(12px);
+    transition: background 0.15s;
+  }
+
+  #pill:hover { background: rgba(20,20,28,0.90); }
+
+  .dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+
+  .dot.s0 { background: #4ade80; box-shadow: 0 0 7px #4ade8088; }
+  .dot.s1 { background: #f59e0b; box-shadow: 0 0 7px #f59e0b88; }
+  .dot.s2 { background: #ef4444; box-shadow: 0 0 7px #ef444488; }
+  .dot.s3 { background: #818cf8; box-shadow: 0 0 7px #818cf888; }
+
+  #pill-texts { flex: 1; min-width: 0; -webkit-app-region: no-drag; pointer-events: none; }
+
+  #status-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #f0f0f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #note-label {
+    font-size: 10.5px;
+    color: rgba(255,255,255,0.70);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+  }
+
+  #chevron {
+    font-size: 11px;
+    color: rgba(255,255,255,0.25);
+    -webkit-app-region: no-drag;
+    line-height: 1;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  #chevron.open { transform: rotate(180deg); }
+
+  /* --- Menu déroulant --- */
+  #menu {
+    display: none;
+    flex-direction: column;
+    background: rgba(14,14,18,0.93);
+    border: 0.5px solid rgba(255,255,255,0.10);
+    border-radius: 12px;
+    margin-top: 6px;
+    padding: 6px;
+    overflow: hidden;
+  }
+
+  #menu.visible { display: flex; }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .menu-item:hover { background: rgba(255,255,255,0.07); }
+  .menu-item.active { background: rgba(255,255,255,0.05); }
+
+  .menu-item span {
+    font-size: 12px;
+    color: #ddd;
+  }
+
+  .separator {
+    height: 0.5px;
+    background: rgba(255,255,255,0.08);
+    margin: 5px 4px;
+  }
+
+  #note-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px 4px;
+  }
+
+  #note-input {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 0.5px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 11px;
+    color: #ccc;
+    outline: none;
+    font-family: inherit;
+  }
+
+  #note-input::placeholder { color: rgba(255,255,255,0.25); }
+  #note-input:focus { border-color: rgba(255,255,255,0.25); }
+
+  #note-ok {
+    background: rgba(255,255,255,0.08);
+    border: none;
+    border-radius: 5px;
+    padding: 5px 8px;
+    font-size: 10px;
+    color: #aaa;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  #note-ok:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+  .bottom-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 2px 4px 0;
+  }
+
+  #quit-btn {
+    background: none;
+    border: none;
+    font-size: 10px;
+    color: rgba(255,255,255,0.18);
+    cursor: pointer;
+    padding: 4px 6px;
+    font-family: inherit;
+    border-radius: 4px;
+  }
+  #quit-btn:hover { color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.06); }
+</style>
+</head>
+<body>
+
+<div id="widget">
+  <div id="pill">
+    <div class="dot s0" id="dot"></div>
+    <div id="pill-texts">
+      <div id="status-label">Disponible</div>
+      <div id="note-label" style="display:none"></div>
+    </div>
+    <div id="chevron">▾</div>
+  </div>
+
+  <div id="menu">
+    <div class="menu-item active" data-idx="0">
+      <div class="dot s0"></div>
+      <span>Disponible</span>
+    </div>
+    <div class="menu-item" data-idx="1">
+      <div class="dot s1"></div>
+      <span>Concentré</span>
+    </div>
+    <div class="menu-item" data-idx="2">
+      <div class="dot s2"></div>
+      <span>Ne pas déranger</span>
+    </div>
+    <div class="menu-item" data-idx="3">
+      <div class="dot s3"></div>
+      <span>Musique forte 🎧</span>
+    </div>
+
+    <div class="separator"></div>
+
+    <div id="note-row">
+      <input id="note-input" type="text" maxlength="40" placeholder="Note courte… (optionnel)" />
+      <button id="note-ok">OK</button>
+    </div>
+
+    <div class="bottom-row">
+      <button id="quit-btn">quitter</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const { ipcRenderer } = require('electron')
+
+const STATUSES = ['Disponible', 'Concentré', 'Ne pas déranger', 'Musique forte 🎧']
+
+let currentStatus = 0
+let menuOpen = false
+let currentNote = ''
+
+const pill = document.getElementById('pill')
+const dotEl = document.getElementById('dot')
+const statusLabel = document.getElementById('status-label')
+const noteLabel = document.getElementById('note-label')
+const chevron = document.getElementById('chevron')
+const menu = document.getElementById('menu')
+const noteInput = document.getElementById('note-input')
+const noteOk = document.getElementById('note-ok')
+const quitBtn = document.getElementById('quit-btn')
+
+async function init() {
+  const cfg = await ipcRenderer.invoke('get-config')
+  currentStatus = cfg.status ?? 0
+  currentNote = cfg.note ?? ''
+  noteInput.value = currentNote
+  applyStatus(currentStatus, false)
+}
+
+function applyStatus(idx, save = true) {
+  currentStatus = idx
+  dotEl.className = 'dot s' + idx
+  statusLabel.textContent = STATUSES[idx]
+  if (currentNote) {
+    noteLabel.textContent = currentNote
+    noteLabel.style.display = 'block'
+  } else {
+    noteLabel.style.display = 'none'
+  }
+  document.querySelectorAll('.menu-item').forEach((el, i) => {
+    el.classList.toggle('active', i === idx)
+  })
+  if (save) ipcRenderer.send('save-config', { status: idx, note: currentNote })
+  updateHeight()
+}
+
+function toggleMenu() {
+  menuOpen = !menuOpen
+  menu.classList.toggle('visible', menuOpen)
+  chevron.classList.toggle('open', menuOpen)
+  updateHeight()
+}
+
+function updateHeight() {
+  const h = document.getElementById('widget').scrollHeight + 4
+  ipcRenderer.send('resize', Math.max(60, h))
+}
+
+pill.addEventListener('click', (e) => {
+  if (e.target.closest('#pill')) toggleMenu()
+})
+
+document.querySelectorAll('.menu-item').forEach(el => {
+  el.addEventListener('click', (e) => {
+    e.stopPropagation()
+    applyStatus(parseInt(el.dataset.idx))
+  })
+})
+
+noteOk.addEventListener('click', (e) => {
+  e.stopPropagation()
+  currentNote = noteInput.value.trim()
+  applyStatus(currentStatus)
+  toggleMenu()
+})
+
+noteInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') noteOk.click()
+  e.stopPropagation()
+})
+
+noteInput.addEventListener('click', e => e.stopPropagation())
+
+quitBtn.addEventListener('click', () => ipcRenderer.send('quit'))
+
+init()
+</script>
+</body>
+</html>
