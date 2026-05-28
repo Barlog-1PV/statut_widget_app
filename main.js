@@ -20,7 +20,7 @@ function createWindow() {
   const config = loadConfig()
   const { width } = screen.getPrimaryDisplay().workAreaSize
 
-  win = new BrowserWindow({
+win = new BrowserWindow({
     width: 220,
     height: 60,
     x: config.x ?? (width - 240),
@@ -39,6 +39,11 @@ function createWindow() {
   })
 
   win.loadFile('index.html')
+  win.setAlwaysOnTop(true, 'screen-saver')
+
+  setInterval(() => {
+    if (win) win.setAlwaysOnTop(true, 'screen-saver')
+  }, 1000)
 
   win.on('moved', () => {
     const [x, y] = win.getPosition()
