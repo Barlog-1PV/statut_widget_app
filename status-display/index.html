@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    background: transparent;
+    overflow: hidden;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    user-select: none;
+  }
+
+  #widget-container {
+    padding: 5px;
+  }
+
+  #pill {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    background: rgba(14, 14, 18, 0.82);
+    border: 0.5px solid rgba(255,255,255,0.10);
+    border-radius: 14px;
+    padding: 10px 13px;
+    backdrop-filter: blur(12px);
+    width: 220px;
+    cursor: grab;
+    position: relative;
+  }
+  #pill:active { cursor: grabbing; }
+
+  .dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+
+  .dot.s0 { background: #4ade80; box-shadow: 0 0 7px #4ade8088; }
+  .dot.s1 { background: #f59e0b; box-shadow: 0 0 7px #f59e0b88; }
+  .dot.s2 { background: #ef4444; box-shadow: 0 0 7px #ef444488; }
+  .dot.s3 { background: #818cf8; box-shadow: 0 0 7px #818cf888; }
+  .dot.offline { background: #6b7280; box-shadow: 0 0 5px #6b728088; }
+
+  #pill-texts { flex: 1; min-width: 0; pointer-events: none; }
+
+  #status-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #f0f0f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #note-label {
+    font-size: 10.5px;
+    color: rgba(255,255,255,0.70);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="widget-container">
+  <div id="pill">
+    <div class="dot offline" id="dot"></div>
+    <div id="pill-texts">
+      <div id="status-label">Vérification...</div>
+      <div id="note-label"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const { ipcRenderer } = require('electron')
+
+let MON_IP = '127.0.0.1'
+const PORT = '3000'
+const STATUSES = ['Disponible', 'Concentré', 'Ne pas déranger', 'Musique forte 🎧']
+
+const pill = document.getElementById('pill')
+const dotEl = document.getElementById('dot')
+const statusLabel = document.getElementById('status-label')
+const noteLabel = document.getElementById('note-label')
+
+let isDragging = false
+let mouseX = 0
+let mouseY = 0
+
+pill.addEventListener('mousedown', (e) => {
+  if (e.button === 0) {
+    isDragging = true
+    mouseX = e.clientX
+    mouseY = e.clientY
+  }
+})
+
+window.addEventListener('mousemove', (e) => {
+  if (isDragging) {
+    ipcRenderer.send('window-drag', { mouseX, mouseY })
+  }
+})
+
+window.addEventListener('mouseup', () => {
+  isDragging = false
+})
+
+async function checkStatus() {
+  try {
+    const controller = new AbortController()
+    const id = setTimeout(() => controller.abort(), 1500)
+    
+    const response = await fetch(`http://${MON_IP}:${PORT}/api/status`, { signal: controller.signal })
+    clearTimeout(id)
+    
+    if (!response.ok) throw new Error()
+    const data = await response.json()
+    
+    dotEl.className = 'dot s' + data.status
+    statusLabel.textContent = STATUSES[data.status]
+    statusLabel.style.color = '#f0f0f0'
+    
+    if (data.note) {
+      noteLabel.textContent = data.note
+      noteLabel.style.display = 'block'
+    } else {
+      noteLabel.style.display = 'none'
+    }
+  } catch (err) {
+    dotEl.className = 'dot offline'
+    statusLabel.textContent = 'Hors ligne'
+    statusLabel.style.color = 'rgba(255,255,255,0.4)'
+    noteLabel.style.display = 'none'
+  }
+}
+
+window.addEventListener('contextmenu', (e) => {
+  e.preventDefault()
+  ipcRenderer.send('show-context-menu')
+})
+
+async function init() {
+  MON_IP = await ipcRenderer.invoke('get-ip')
+  checkStatus()
+  setInterval(checkStatus, 3000)
+}
+
+init()
+</script>
+</body>
+</html>

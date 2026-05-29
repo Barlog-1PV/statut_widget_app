@@ -1,9 +1,12 @@
 const { app, BrowserWindow, ipcMain, globalShortcut, screen } = require('electron')
 const path = require('path')
 const fs = require('fs')
+const express = require('express')
 
 const CONFIG_PATH = path.join(app.getPath('userData'), 'config.json')
 let win = null
+const expressApp = express()
+const PORT = 3000
 
 function loadConfig() {
   try {
@@ -16,11 +19,21 @@ function saveConfig(data) {
   try { fs.writeFileSync(CONFIG_PATH, JSON.stringify(data)) } catch {}
 }
 
+expressApp.get('/api/status', (req, res) => {
+  const config = loadConfig()
+  res.json({
+    status: config.status,
+    note: config.note || ''
+  })
+})
+
+expressApp.listen(PORT, '0.0.0.0')
+
 function createWindow() {
   const config = loadConfig()
   const { width } = screen.getPrimaryDisplay().workAreaSize
 
-win = new BrowserWindow({
+  win = new BrowserWindow({
     width: 220,
     height: 60,
     x: config.x ?? (width - 240),
