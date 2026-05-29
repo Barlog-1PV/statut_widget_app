@@ -2,12 +2,18 @@ const { app, BrowserWindow, screen, ipcMain, Menu } = require('electron')
 const path = require('path')
 const fs = require('fs')
 
-const CONFIG_PATH = path.join(app.getPath('userData'), 'config-client.json')
+const CONFIG_PATH = path.join(__dirname, 'config-client.json')
 let win = null
 
 function loadConfig() {
   try {
-    if (fs.existsSync(CONFIG_PATH)) return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+    if (fs.existsSync(CONFIG_PATH)) {
+      return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))
+    } else {
+      const defaultConfig = { serverIp: '127.0.0.1' }
+      fs.writeFileSync(CONFIG_PATH, JSON.stringify(defaultConfig, null, 2))
+      return defaultConfig
+    }
   } catch {}
   return { serverIp: '127.0.0.1' }
 }
